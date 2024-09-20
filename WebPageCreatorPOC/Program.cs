@@ -71,7 +71,12 @@ var projectTemplate = @"<div class=""project"">
 var projectStringBuilder = new StringBuilder();
 
 // Fetch all repositories for the current authenticated user
-var repositories = await client.Repository.GetAllForCurrent();
+var repositories = await client.Repository.GetAllForCurrent(new RepositoryRequest 
+{
+  Type = RepositoryType.Owner,
+  Sort = RepositorySort.Updated,
+  Direction = SortDirection.Descending,
+});
 
 foreach (var repo in repositories.Where(i => !i.Private && !i.Fork))
 {
@@ -93,15 +98,13 @@ foreach (var repo in repositories.Where(i => !i.Private && !i.Fork))
     {
       var percentage = (((float)language.NumberOfBytes / (float)totalBytes) * 100f).ToString("0.00");
 
-      Console.WriteLine(percentage.ToString());
-
-      if (!languageDictionary.ContainsKey(language.Name))
+      if (!languageDictionary.TryGetValue(language.Name, out string? value))
       {
         projectLanguages.AppendLine(@$"<span class=""language language-unknown"">{language.Name} ({percentage}%)</span>");
       }
       else
       { 
-        projectLanguages.AppendLine(@$"<span class=""language {languageDictionary[language.Name]}"">{language.Name} ({percentage}%)</span>");
+        projectLanguages.AppendLine(@$"<span class=""language {value}"">{language.Name} ({percentage}%)</span>");
       }
     }
 
@@ -144,6 +147,7 @@ foreach (var repo in repositories.Where(i => !i.Private && !i.Fork))
   }
 
   projectString = projectString.Replace("[github link]", repo.HtmlUrl);
+
   projectStringBuilder.AppendLine(projectString);
 }
 
