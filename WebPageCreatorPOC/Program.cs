@@ -14,6 +14,8 @@ var client = new GitHubClient(new ProductHeaderValue("MyApp"));
 var tokenAuth = new Credentials(personalAccessToken);
 client.Credentials = tokenAuth;
 
+// Initialize the generator
 var generator = new GithubWebPageGenerator(client);
 
+// Create page
 await generator.GenerateAsync();
