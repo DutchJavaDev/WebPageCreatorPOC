@@ -1,11 +1,14 @@
 ﻿using Octokit;
+using System.Collections.Concurrent;
 using System.Text;
 
 namespace WebPageCreatorPOC
 {
   public sealed class GithubWebPageGenerator(GitHubClient client)
   {
-    private static string ProjectDivTemplate = @"<div class=""project"">
+    private static readonly ConcurrentDictionary<int,string> ConcurrentProjectDivDictionary = new();
+
+    private static readonly string ProjectDivTemplate = @"<div class=""project"">
       <h2>Name: <span id=""project-name-1"">[Project-Name-Placeholder]</span></h2>
       <div class=""languages"">
         [ProjectLanguages]
@@ -23,6 +26,8 @@ namespace WebPageCreatorPOC
 
     public async Task GenerateAsync(string templateName = "template-index.html")
     {
+      ConcurrentProjectDivDictionary.Clear();
+
       var repositories = await client.Repository.GetAllForCurrent(new RepositoryRequest
       {
         Type = RepositoryType.Owner,
@@ -32,39 +37,52 @@ namespace WebPageCreatorPOC
 
       var projectDivs = new StringBuilder();
 
-      // No control over the order
-      //var tasks = new List<Task>();
+      var tasks = new List<Task>();
+
+      var orderIndex = 0;
 
       foreach (var repo in repositories.Where(i => !i.Private && !i.Fork)) 
       {
-        //tasks.Add(Task.Run(async () => {
-          var projectDiv = ProjectDivTemplate;
-
-          projectDiv = SetProjectName(repo, projectDiv);
-
-          projectDiv = await SetProjectLanguagesAsync(repo, projectDiv);
-
-          projectDiv = SetProjectDescription(repo, projectDiv);
-
-          projectDiv = await SetLastCommitAsync(repo, projectDiv);
-
-          projectDiv = SetGithubLink(repo, projectDiv);
-
-          projectDivs.Append(projectDiv);
-        //}));
+        var index = orderIndex;
+        tasks.Add(Task.Run(async () => await CreateProjectDivAsync(index, repo)));
+        orderIndex++;
       }
 
-      //await Task.WhenAll(tasks);
+      await Task.WhenAll(tasks);
 
+      foreach (var (index, content) in ConcurrentProjectDivDictionary.OrderBy(i => i.Key)) 
+      {
+        projectDivs.AppendLine(content);
+      }
+      
       await WriteToPageAsync(projectDivs.ToString(), templateName);
+    }
+
+    private async Task CreateProjectDivAsync(int orderNumber, Repository repo)
+    {
+      var projectDiv = ProjectDivTemplate;
+
+      projectDiv = SetProjectName(repo, projectDiv);
+
+      projectDiv = await SetProjectLanguagesAsync(repo, projectDiv);
+
+      projectDiv = SetProjectDescription(repo, projectDiv);
+
+      projectDiv = await SetLastCommitAsync(repo, projectDiv);
+
+      projectDiv = SetGithubLink(repo, projectDiv);
+
+      ConcurrentProjectDivDictionary.TryAdd(orderNumber, projectDiv);
     }
 
     private static async Task WriteToPageAsync(string content, string template)
     {
       var templateFile = await File.ReadAllTextAsync($"Template/{template}");
 
+      var now = DateTime.Now;
+
       var indexPage = templateFile.Replace("<!--projects_replace-->", content)
-        .Replace("[Last-generated]", DateTime.Now.ToShortDateString());
+        .Replace("[Last-generated]", $"{now.ToLongDateString()} : {now.ToLongTimeString()}");
 
       await File.WriteAllTextAsync("Template/index.html", indexPage);
     }
@@ -107,7 +125,7 @@ namespace WebPageCreatorPOC
         var now = DateTime.Now;
         var commitDate = lastCommitMessage.Commit.Author.Date.DateTime;
         var days = (now - commitDate).Days;
-        var message = $"{commitDate.ToShortDateString()} ({days} days ago)<br>{lastCommitMessage.Commit.Message}";
+        var message = $"{commitDate.ToShortDateString()} <b>({days} days ago)</b><br>{lastCommitMessage.Commit.Message}";
         return div.Replace("[Last-commit]",message);
       }
 
