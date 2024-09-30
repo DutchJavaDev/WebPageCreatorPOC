@@ -275,7 +275,14 @@
 
       const lastCommitInDays = Math.round(differenceInDays)
 
-      div.getElementsByClassName('last-commit-day')[0].innerHTML = `(${lastCommitInDays} days ago)`
+      if (lastCommitInDays <= 0)
+      {
+        div.getElementsByClassName('last-commit-day')[0].innerHTML = `(less than 1 day ago)`
+      }
+      else
+      {
+        div.getElementsByClassName('last-commit-day')[0].innerHTML = `(${lastCommitInDays} days ago)`
+      }
     })
   }
 </script>
