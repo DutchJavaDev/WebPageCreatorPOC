@@ -8,7 +8,7 @@ namespace WebPageCreatorPOC
   {
     private static readonly ConcurrentDictionary<int,string> ConcurrentProjectDivDictionary = new();
 
-    private static readonly string ProjectDivTemplate = @"<div class=""project"">
+    private static readonly string ProjectDivTemplate = @"<div data-date='[replace-data]' class=""project"">
       <h2>Name: <span id=""project-name-1"">[Project-Name-Placeholder]</span></h2>
       <div class=""languages"">
         [ProjectLanguages]
@@ -124,11 +124,16 @@ namespace WebPageCreatorPOC
       {
         var now = DateTime.Now;
         var commitDate = lastCommitMessage.Commit.Author.Date.DateTime;
+        div = div.Replace("[replace-data]", commitDate.ToString("o"));
+
+        // Will get update by js ^^^^
         var days = (now - commitDate).Days;
-        var message = $"{commitDate.ToShortDateString()} <b>({days} days ago)</b><br>{lastCommitMessage.Commit.Message}";
+        var message = $"{commitDate.ToShortDateString()} <b class='last-commit-day'>({days} days ago)</b><br>{lastCommitMessage.Commit.Message}";
         return div.Replace("[Last-commit]",message);
       }
 
+
+      // if it fails display no date
       return div.Replace("[Last-commit]","No last commit message found");
     }
 

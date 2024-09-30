@@ -220,7 +220,7 @@
     }
   </style>
 </head>
-<body>
+<body onload="updateTimeSinceLastCommit()">
   <div class="container">
     <h1>My GitHub Projects</h1>
     <h2>This was generated using <a style="text-decoration:underline !important;" href="https://github.com/DutchJavaDev/WebPageCreatorPOC">WebPageCreatorPOC</a></h2>
@@ -245,6 +245,37 @@
   </div>
 
   <script>
-  </script>
+</script>
 </body>
 </html>
+<script>
+  // Could make this run every second to keep it up to date but nah....
+  // No one is going to the github webpage open for more then 5-10 minutes
+  // If they do then they are a bot lol...
+  function updateTimeSinceLastCommit()
+  {
+    const divs = document.querySelectorAll('div[data-date]');
+
+    divs.forEach(div => {
+      const commitDate = div.getAttribute('data-date')
+
+      const commitDateObject = Date.parse(commitDate)
+
+      if (!commitDateObject)
+      {
+        div.getElementsByClassName('last-commit-day')[0].innerHTML = `The force is broken, contact the developer`
+        return;
+      }
+
+      const now = new Date()
+
+      const difference = now - commitDateObject
+
+      const differenceInDays = difference / (1000 * 60 * 60 * 24);
+
+      const lastCommitInDays = Math.round(differenceInDays)
+
+      div.getElementsByClassName('last-commit-day')[0].innerHTML = `(${lastCommitInDays} days ago)`
+    })
+  }
+</script>
