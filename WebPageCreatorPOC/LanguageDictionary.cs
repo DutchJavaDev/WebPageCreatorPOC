@@ -5,7 +5,7 @@
     static Dictionary<string, string> SupportedLanguages = new Dictionary<string, string>()
 {
             { "C#", "language-csharp" },
-            { "JavaScript", "language-javascript" },
+            { "JavaScript", "language-js" },
             { "Python", "language-python" },
             { "Java", "language-java" },
             { "C++", "language-cpp" },
